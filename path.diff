@@ -1,0 +1,63 @@
+--- index.js.old	2015-01-22 19:32:00.320412555 +0500
++++ index.js	2015-01-22 20:17:18.476392501 +0500
+@@ -9,13 +9,11 @@
+ module.exports.FunctionFactory = FunctionFactory
+ module.exports.Function = FunctionFactory()
+ 
+-var maxIterations = 1000000
+-
+ // 'eval' with a controlled environment
+-function safeEval(src, parentContext){
++function safeEval(src, parentContext, maxIterations){
+   var tree = prepareAst(src)
+   var context = Object.create(parentContext || {})
+-  return finalValue(evaluateAst(tree, context))
++  return finalValue(evaluateAst(tree, context, maxIterations))
+ }
+ 
+ // create a 'Function' constructor for a controlled environment
+@@ -42,8 +40,9 @@
+ }
+ 
+ // evaluate an AST in the given context
+-function evaluateAst(tree, context){
++function evaluateAst(tree, context, maxIterations){
+ 
++  var maxIterations = maxIterations || 1000000 
+   var safeFunction = FunctionFactory(context)
+   var primitives = Primitives(context)
+ 
+@@ -82,12 +81,12 @@
+ 
+       case 'FunctionDeclaration':
+         var params = node.params.map(getName)
+-        var value = getFunction(node.body, params, blockContext)
++        var value = getFunction(node.body, params, blockContext, maxIterations)
+         return context[node.id.name] = value
+ 
+       case 'FunctionExpression':
+         var params = node.params.map(getName)
+-        return getFunction(node.body, params, blockContext)
++        return getFunction(node.body, params, blockContext, maxIterations)
+ 
+       case 'ReturnStatement':
+         var value = walk(node.argument)
+@@ -468,7 +467,7 @@
+ }
+ 
+ // generate a function with specified context
+-function getFunction(body, params, parentContext){
++function getFunction(body, params, parentContext, maxIterations){
+   return function(){
+     var context = Object.create(parentContext)
+     if (this == global){
+@@ -485,7 +484,7 @@
+         context[param] = arg
+       }
+     })
+-    var result = evaluateAst(body, context)
++    var result = evaluateAst(body, context, maxIterations)
+ 
+     if (result instanceof ReturnValue){
+       return result.value
+
