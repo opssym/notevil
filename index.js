@@ -20,6 +20,19 @@ function safeEval(src, parentContext, maxIterations){
 function FunctionFactory(parentContext){
   var context = Object.create(parentContext || {})
   return function Function() {
+    var length = args.length
+    // overloading for maxIterations argument
+    if (typeof args[length-1] === 'number') {
+      var src = args[length-2]
+      var maxIterations = args[length-1]
+      args = args.slice(0,-2)
+      if (typeof src === 'string'){
+        //HACK: esprima doesn't like returns outside functions
+        src = parse('function a(){' + src + '}').body[0].body
+      }
+      var tree = prepareAst(src)
+      return getFunction(tree, args, context, maxIterations)
+    }
     // normalize arguments array
     var args = Array.prototype.slice.call(arguments)
     var src = args.slice(-1)[0]
